@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <title>Minha Carteira Crypto</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2a2a2a">
     <style>
         /* Reset básico */
         * {
@@ -166,7 +168,6 @@
             color: #f44336;
         }
 
-        /* Media queries para mobile */
         @media (max-width: 360px) {
 
             .header,
@@ -185,10 +186,16 @@
             }
         }
     </style>
+    <script>
+        // Registrar Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .catch(err => console.error('SW registration failed:', err));
+        }
+    </script>
 </head>
 
 <body>
-
     <div class="carteira">
         <div class="header">
             <h1>Minha carteira</h1>
@@ -200,8 +207,7 @@
                 <div class="valor">R$ 0,00</div>
             </div>
             <div class="totais-toggle collapsed" id="toggleTotais">
-                <span>Totais do dia</span>
-                <span class="arrow">▶</span>
+                <span>Totais do dia</span><span class="arrow">▶</span>
             </div>
             <div class="totais-dia" id="painelTotais">
                 <div class="ganho">Ganho: R$ 0,00</div>
@@ -226,9 +232,10 @@
 
         async function carregarCarteira() {
             const ids = investimentos.map(c => c.id).join(',');
-            const res = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=brl&ids=${ids}&per_page=20&page=1&sparkline=false`);
+            const res = await fetch(
+                `https://api.coingecko.com/api/v3/coins/markets?vs_currency=brl&ids=${ids}&per_page=20&page=1&sparkline=false`
+            );
             const data = await res.json();
-
             let total = 0, ganhoDiaTotal = 0, perdaDiaTotal = 0;
             const container = document.getElementById('listaCoins');
             container.innerHTML = '';
@@ -239,8 +246,7 @@
                 const ganhoDia = inv.investido * (pct / 100);
                 const atual = inv.investido + ganhoDia;
                 total += atual;
-                if (ganhoDia >= 0) ganhoDiaTotal += ganhoDia;
-                else perdaDiaTotal += Math.abs(ganhoDia);
+                ganhoDia >= 0 ? ganhoDiaTotal += ganhoDia : perdaDiaTotal += Math.abs(ganhoDia);
 
                 const el = document.createElement('div');
                 el.className = 'coin';
@@ -261,6 +267,7 @@
                 container.appendChild(el);
             });
 
+            // cabeçalho
             document.querySelector('.saldo-total .valor').textContent = formatBRL(total);
             const investidoTotal = investimentos.reduce((s, c) => s + c.investido, 0);
             const rendTotal = total - investidoTotal;
@@ -269,6 +276,7 @@
             rendEl.classList.toggle('up', rendTotal >= 0);
             rendEl.classList.toggle('down', rendTotal < 0);
 
+            // totais do dia
             document.querySelector('.totais-dia .ganho').textContent = `Ganho: ${formatBRL(ganhoDiaTotal)}`;
             document.querySelector('.totais-dia .perda').textContent = `Perda: ${formatBRL(perdaDiaTotal)}`;
         }
@@ -281,7 +289,6 @@
         carregarCarteira().catch(console.error);
         setInterval(() => carregarCarteira().catch(console.error), 1000 * 60);
     </script>
-
 </body>
 
 </html>
