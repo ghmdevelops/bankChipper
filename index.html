@@ -66,6 +66,24 @@
             color: #f44336;
         }
 
+        /* Botão instalar */
+        #btnInstall {
+            display: none;
+            width: calc(100% - 2rem);
+            margin: 0.5rem 1rem;
+            padding: 0.75rem;
+            background: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        #btnInstall:hover {
+            background: #43a047;
+        }
+
         .totais-toggle {
             cursor: pointer;
             font-size: 0.875rem;
@@ -168,7 +186,7 @@
             color: #f44336;
         }
 
-        @media (max-width: 360px) {
+        @media (max-width:360px) {
 
             .header,
             .totais-dia,
@@ -206,6 +224,8 @@
                 </div>
                 <div class="valor">R$ 0,00</div>
             </div>
+            <!-- Botão de instalação -->
+            <button id="btnInstall">Instalar App</button>
             <div class="totais-toggle collapsed" id="toggleTotais">
                 <span>Totais do dia</span><span class="arrow">▶</span>
             </div>
@@ -218,6 +238,23 @@
     </div>
 
     <script>
+        let deferredPrompt;
+        const btnInstall = document.getElementById('btnInstall');
+
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredPrompt = e;
+            btnInstall.style.display = 'block';
+        });
+
+        btnInstall.addEventListener('click', async () => {
+            btnInstall.style.display = 'none';
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log('Instalação:', outcome);
+            deferredPrompt = null;
+        });
+
         const investimentos = [
             { id: 'bitcoin', nome: 'Bitcoin', icon: 'https://assets.coingecko.com/coins/images/1/thumb/bitcoin.png', investido: 100000 },
             { id: 'ethereum', nome: 'Ethereum', icon: 'https://assets.coingecko.com/coins/images/279/thumb/ethereum.png', investido: 38000 },
@@ -232,9 +269,7 @@
 
         async function carregarCarteira() {
             const ids = investimentos.map(c => c.id).join(',');
-            const res = await fetch(
-                `https://api.coingecko.com/api/v3/coins/markets?vs_currency=brl&ids=${ids}&per_page=20&page=1&sparkline=false`
-            );
+            const res = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=brl&ids=${ids}&per_page=20&page=1&sparkline=false`);
             const data = await res.json();
             let total = 0, ganhoDiaTotal = 0, perdaDiaTotal = 0;
             const container = document.getElementById('listaCoins');
@@ -267,16 +302,14 @@
                 container.appendChild(el);
             });
 
-            // cabeçalho
             document.querySelector('.saldo-total .valor').textContent = formatBRL(total);
-            const investidoTotal = investimentos.reduce((s, c) => s + c.investido, 0);
-            const rendTotal = total - investidoTotal;
+            const investTotal = investimentos.reduce((s, c) => s + c.investido, 0);
+            const rendTotal = total - investTotal;
             const rendEl = document.querySelector('.rendimento');
             rendEl.textContent = `${rendTotal >= 0 ? '↑ ' : '↓ '}${formatBRL(Math.abs(rendTotal))}`;
             rendEl.classList.toggle('up', rendTotal >= 0);
             rendEl.classList.toggle('down', rendTotal < 0);
 
-            // totais do dia
             document.querySelector('.totais-dia .ganho').textContent = `Ganho: ${formatBRL(ganhoDiaTotal)}`;
             document.querySelector('.totais-dia .perda').textContent = `Perda: ${formatBRL(perdaDiaTotal)}`;
         }
