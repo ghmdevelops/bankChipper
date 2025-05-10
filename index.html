@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Minha Carteira Crypto</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Reset básico */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #121212;
+            color: #e1e1e1;
+            font-family: "Segoe UI", sans-serif;
+            display: flex;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .carteira {
+            width: 100%;
+            max-width: 400px;
+            background-color: #1e1e1e;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .header {
+            padding: 1rem;
+            background: #2a2a2a;
+        }
+
+        .header h1 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .saldo-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .saldo-total .valor {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .saldo-total .rendimento {
+            font-size: 0.875rem;
+        }
+
+        .rendimento.up {
+            color: #4caf50;
+        }
+
+        .rendimento.down {
+            color: #f44336;
+        }
+
+        .totais-toggle {
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: #aaa;
+            margin-top: 0.5rem;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .totais-toggle:hover {
+            color: #fff;
+        }
+
+        .totais-toggle .arrow {
+            transition: transform 0.2s;
+        }
+
+        .totais-toggle.collapsed .arrow {
+            transform: rotate(-90deg);
+        }
+
+        .totais-dia {
+            display: none;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            justify-content: space-between;
+            background: #2a2a2a;
+        }
+
+        .totais-dia.show {
+            display: flex;
+        }
+
+        .totais-dia .ganho {
+            color: #4caf50;
+        }
+
+        .totais-dia .perda {
+            color: #f44336;
+        }
+
+        .lista-coins {
+            background-color: #1e1e1e;
+        }
+
+        .coin {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .coin:last-child {
+            border-bottom: none;
+        }
+
+        .coin-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .coin-info img {
+            width: 32px;
+            height: 32px;
+            margin-right: 0.75rem;
+        }
+
+        .coin-nome {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .coin-quant {
+            font-size: 0.75rem;
+            color: #a0a0a0;
+        }
+
+        .coin-valores {
+            text-align: right;
+        }
+
+        .valor-atual {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .var24h {
+            font-size: 0.75rem;
+            margin-top: 0.2rem;
+        }
+
+        .var24h.up {
+            color: #4caf50;
+        }
+
+        .var24h.down {
+            color: #f44336;
+        }
+
+        /* Media queries para mobile */
+        @media (max-width: 360px) {
+
+            .header,
+            .totais-dia,
+            .coin {
+                padding-left: 0.75rem;
+                padding-right: 0.75rem;
+            }
+
+            .saldo-total .valor {
+                font-size: 1.25rem;
+            }
+
+            .header h1 {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="carteira">
+        <div class="header">
+            <h1>Minha carteira</h1>
+            <div class="saldo-total">
+                <div>
+                    <div>Saldo total</div>
+                    <div class="rendimento up">↑ R$ 0,00</div>
+                </div>
+                <div class="valor">R$ 0,00</div>
+            </div>
+            <div class="totais-toggle collapsed" id="toggleTotais">
+                <span>Totais do dia</span>
+                <span class="arrow">▶</span>
+            </div>
+            <div class="totais-dia" id="painelTotais">
+                <div class="ganho">Ganho: R$ 0,00</div>
+                <div class="perda">Perda: R$ 0,00</div>
+            </div>
+        </div>
+        <div class="lista-coins" id="listaCoins"></div>
+    </div>
+
+    <script>
+        const investimentos = [
+            { id: 'bitcoin', nome: 'Bitcoin', icon: 'https://assets.coingecko.com/coins/images/1/thumb/bitcoin.png', investido: 100000 },
+            { id: 'ethereum', nome: 'Ethereum', icon: 'https://assets.coingecko.com/coins/images/279/thumb/ethereum.png', investido: 38000 },
+            { id: 'solana', nome: 'Solana', icon: 'https://assets.coingecko.com/coins/images/4128/thumb/solana.png', investido: 20000 },
+            { id: 'monero', nome: 'Monero', icon: 'https://assets.coingecko.com/coins/images/69/thumb/monero_logo.png', investido: 24000 },
+            { id: 'cardano', nome: 'Cardano', icon: 'https://assets.coingecko.com/coins/images/975/thumb/cardano.png', investido: 3000 },
+        ];
+
+        function formatBRL(v) {
+            return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        async function carregarCarteira() {
+            const ids = investimentos.map(c => c.id).join(',');
+            const res = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=brl&ids=${ids}&per_page=20&page=1&sparkline=false`);
+            const data = await res.json();
+
+            let total = 0, ganhoDiaTotal = 0, perdaDiaTotal = 0;
+            const container = document.getElementById('listaCoins');
+            container.innerHTML = '';
+
+            data.forEach(coin => {
+                const inv = investimentos.find(c => c.id === coin.id);
+                const pct = coin.price_change_percentage_24h;
+                const ganhoDia = inv.investido * (pct / 100);
+                const atual = inv.investido + ganhoDia;
+                total += atual;
+                if (ganhoDia >= 0) ganhoDiaTotal += ganhoDia;
+                else perdaDiaTotal += Math.abs(ganhoDia);
+
+                const el = document.createElement('div');
+                el.className = 'coin';
+                el.innerHTML = `
+          <div class="coin-info">
+            <img src="${inv.icon}" alt="${inv.nome}">
+            <div>
+              <div class="coin-nome">${inv.nome}</div>
+              <div class="coin-quant">${(inv.investido / coin.current_price).toFixed(8)} ${coin.symbol.toUpperCase()}</div>
+            </div>
+          </div>
+          <div class="coin-valores">
+            <div class="valor-atual">${formatBRL(atual)}</div>
+            <div class="var24h ${pct >= 0 ? 'up' : 'down'}">
+              ${pct >= 0 ? '↑' : '↓'} ${formatBRL(ganhoDia)} (${pct.toFixed(2)}%)
+            </div>
+          </div>`;
+                container.appendChild(el);
+            });
+
+            document.querySelector('.saldo-total .valor').textContent = formatBRL(total);
+            const investidoTotal = investimentos.reduce((s, c) => s + c.investido, 0);
+            const rendTotal = total - investidoTotal;
+            const rendEl = document.querySelector('.rendimento');
+            rendEl.textContent = `${rendTotal >= 0 ? '↑ ' : '↓ '}${formatBRL(Math.abs(rendTotal))}`;
+            rendEl.classList.toggle('up', rendTotal >= 0);
+            rendEl.classList.toggle('down', rendTotal < 0);
+
+            document.querySelector('.totais-dia .ganho').textContent = `Ganho: ${formatBRL(ganhoDiaTotal)}`;
+            document.querySelector('.totais-dia .perda').textContent = `Perda: ${formatBRL(perdaDiaTotal)}`;
+        }
+
+        document.getElementById('toggleTotais').addEventListener('click', () => {
+            document.getElementById('painelTotais').classList.toggle('show');
+            document.getElementById('toggleTotais').classList.toggle('collapsed');
+        });
+
+        carregarCarteira().catch(console.error);
+        setInterval(() => carregarCarteira().catch(console.error), 1000 * 60);
+    </script>
+
+</body>
+
+</html>
