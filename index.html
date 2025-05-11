@@ -428,6 +428,8 @@
             return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
 
+        const existingAddress = '1BoatSLRHtKNngkdXEeobR76b53LETtpyT';  // ou qualquer string dinâmica
+
         // Transferência com validação, equivalente e WebAuthn
         document.getElementById('btnTransfer').addEventListener('click', async () => {
             // Endereço
@@ -436,6 +438,7 @@
                 input: 'text',
                 inputLabel: 'Cole o endereço Bitcoin',
                 inputPlaceholder: '1BoatSLRHtKNngkdXEeobR76b53LETtpyT',
+                inputValue: existingAddress,
                 inputValidator: v => {
                     if (!v) return 'Endereço obrigatório!';
                     if (!/^([13][a-km-zA-HJ-NP-Z1-9]{25,34})$/.test(v)) return 'Formato inválido!';
