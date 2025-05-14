@@ -11,6 +11,76 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
     <style>
+        :root {
+            --neon-green: #0d5f2b;
+            --neon-glow: 0 0 8px var(--neon-green), 0 0 16px var(--neon-green);
+        }
+
+        /* --- SweetAlert2 customizações --- */
+        .swal2-popup {
+            background: #2a2a2a !important;
+            border: 2px solid var(--neon-green) !important;
+            box-shadow: var(--neon-glow) !important;
+            width: auto !important;
+            max-width: 90% !important;
+            padding: 1rem !important;
+        }
+
+        .swal2-title {
+            color: #fff !important;
+            text-shadow: var(--neon-glow) !important;
+            font-size: 1.25rem !important;
+        }
+
+        .swal2-html-container {
+            color: #ccc !important;
+            font-size: 1rem !important;
+        }
+
+        .swal2-input {
+            background: #333 !important;
+            color: #fff !important;
+            border: 1px solid var(--neon-green) !important;
+            width: 100% !important;
+            margin: .5rem 0 !important;
+        }
+
+        .swal2-confirm {
+            background-color: var(--neon-green) !important;
+            box-shadow: var(--neon-glow) !important;
+            padding: .6rem 1.2rem !important;
+            font-size: 1rem !important;
+        }
+
+        .swal2-cancel {
+            background-color: #555 !important;
+            padding: .6rem 1.2rem !important;
+            font-size: 1rem !important;
+        }
+
+        /* Remover glow/borda neon da imagem do logo */
+        .swal2-image {
+            box-shadow: none !important;
+            border: none !important;
+        }
+
+        @media (max-width: 400px) {
+            .swal2-title {
+                font-size: 1.1rem !important;
+            }
+
+            .swal2-html-container {
+                font-size: .9rem !important;
+            }
+
+            .swal2-confirm,
+            .swal2-cancel {
+                font-size: .9rem !important;
+                padding: .5rem 1rem !important;
+            }
+        }
+
+        /* --- Resto do seu CSS existente --- */
         * {
             margin: 0;
             padding: 0;
@@ -27,53 +97,67 @@
         }
 
         .carteira {
-            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 64px);
             max-width: 460px;
             width: 100%;
             margin: 0 auto;
             background: #1e1e1e;
+          
             border-radius: 16px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6)
+            overflow: hidden
         }
 
         .header {
             padding: 1.5rem;
-            background: linear-gradient(135deg, #333, #222)
+            background: #2a2a2a;
+        }
+
+        .user-header {
+            display: flex;
+            flex-direction: column;
+            align-items: baseline;
+
+        }
+
+        .user-logo {
+            width: 90px;
+            height: 90px;
+            object-fit: contain;
+        }
+
+        .user-name {
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            align-items: baseline;
+
         }
 
         .header h1 {
             color: #fff;
             font-size: 1.5rem;
-            margin-bottom: .6rem
         }
 
         .saldo-total {
             display: flex;
             justify-content: space-between;
-            align-items: flex-end
+            align-items: flex-end;
+            cursor: pointer;
+            margin-top: 1rem;
         }
 
-        .valor-container {
-            display: flex;
-            align-items: center
-        }
-
-        .toggle-saldo {
-            background: none;
-            border: none;
-            color: #fff;
-            font-size: 1.2rem;
-            margin-left: .5rem;
-            cursor: pointer
+        .saldo-total:hover .valor {
+            text-shadow: var(--neon-glow)
         }
 
         .saldo-total .valor {
             font-size: 2rem;
             font-weight: 700;
-            color: #fff
+            color: #fff;
+            text-shadow: var(--neon-glow);
+            user-select: none
         }
 
         .saldo-total .rendimento.up {
@@ -89,18 +173,20 @@
             width: calc(50% - 1rem);
             margin: .5rem .5rem 0 0;
             padding: .8rem;
-            background: #4caf50;
+            background: var(--neon-green);
             color: #fff;
             border: none;
             border-radius: 12px;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4)
+            box-shadow: var(--neon-glow);
+            transition: box-shadow .2s
         }
 
         #btnInstall:hover {
-            background: #43a047
+            box-shadow: 0 0 12px var(--neon-green), 0 0 24px var(--neon-green);
+            background: #008f35
         }
 
         .totais-toggle {
@@ -144,7 +230,7 @@
         .lista-coins {
             flex: 1;
             overflow-y: auto;
-            background: #1e1e1e
+            padding: .5rem 0
         }
 
         .coin {
@@ -152,29 +238,17 @@
             justify-content: space-between;
             align-items: center;
             padding: 1rem 1.5rem;
-            border-bottom: 1px solid #333;
+            margin: .5rem 1rem;
+            background: #1e1e1e;
+            border: 1px solid var(--neon-green);
+            box-shadow: var(--neon-glow);
+            border-radius: 8px;
             position: relative
-        }
-
-        .coin:last-child {
-            border-bottom: none
-        }
-
-        .coin.hidden .valor-atual,
-        .coin.hidden .var24h,
-        .coin.hidden .coin-quant {
-            color: transparent !important
         }
 
         .coin-info {
             display: flex;
             align-items: center
-        }
-
-        .coin-img-wrapper {
-            position: relative;
-            display: inline-block;
-            margin-right: 1rem
         }
 
         .coin-img-wrapper img {
@@ -183,24 +257,6 @@
             border-radius: 50%;
             background: #333;
             padding: 4px
-        }
-
-        .coin-img-wrapper .coin-badge {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            border: 2px solid #1e1e1e
-        }
-
-        .coin-badge.badge-up {
-            background: #4caf50
-        }
-
-        .coin-badge.badge-down {
-            background: #f44336
         }
 
         .coin-nome {
@@ -224,7 +280,10 @@
             font-size: 1.1rem;
             font-weight: 600;
             color: #fff;
-            margin-right: .5rem
+            margin-right: .5rem;
+            text-shadow: var(--neon-glow);
+            cursor: pointer;
+            user-select: none
         }
 
         .var24h.up {
@@ -233,14 +292,6 @@
 
         .var24h.down {
             color: #f44336
-        }
-
-        .toggle-coin {
-            background: none;
-            border: none;
-            color: #888;
-            font-size: 1rem;
-            cursor: pointer
         }
 
         .nav-bar {
@@ -257,7 +308,7 @@
             align-items: center;
             border-top-left-radius: 16px;
             border-top-right-radius: 16px;
-            box-shadow: 0-4px 12px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.6);
             z-index: 100
         }
 
@@ -272,12 +323,13 @@
             justify-content: center;
             cursor: pointer;
             position: relative;
-            padding: .5rem
+            padding: .5rem;
+            transition: color .2s
         }
 
-        .nav-item.active,
-        .nav-item:hover {
-            color: #d16201
+        .nav-item:hover,
+        .nav-item.active {
+            color: var(--neon-green)
         }
 
         .nav-item.active::after {
@@ -286,86 +338,33 @@
             top: 6px;
             width: 6px;
             height: 6px;
-            background: #4caf50;
-            border-radius: 50%
+            background: var(--neon-green);
+            border-radius: 50%;
+            box-shadow: var(--neon-glow)
         }
 
-        @media(max-width:400px) {
-            .header {
-                padding: 1rem
-            }
-
-            #btnInstall {
-                width: calc(100% - 3rem);
-                margin: .8rem auto
-            }
-
-            .totais-toggle {
-                padding: 0 1rem;
-                font-size: .95rem
-            }
-
-            .totais-dia {
-                padding: .8rem 1rem;
-                font-size: .95rem
-            }
-
-            .coin {
-                padding: .8rem 1rem
-            }
-
-            .coin-img-wrapper img {
-                width: 36px;
-                height: 36px
-            }
-
-            .coin-nome {
-                font-size: 1rem
-            }
-
-            .coin-quant,
-            .var24h {
-                font-size: .85rem
-            }
-
-            .valor-atual {
-                font-size: 1rem
-            }
-
-            .saldo-total .valor {
-                font-size: 1.8rem
-            }
-
-            .header h1 {
-                font-size: 1.3rem
-            }
+        .lista-coins::-webkit-scrollbar {
+            width: 8px
         }
 
-        .swal2-popup {
-            background: #2a2a2a !important;
-            color: #eee !important
+        .lista-coins::-webkit-scrollbar-track {
+            background: #2a2a2a;
+            border-radius: 4px
         }
 
-        .swal2-title {
-            color: #fff !important
+        .lista-coins::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+            border: 2px solid #2a2a2a
         }
 
-        .swal2-html-container {
-            color: #ccc !important
+        .lista-coins::-webkit-scrollbar-thumb:hover {
+            background: #777
         }
 
-        .swal2-input {
-            background: #333 !important;
-            color: #fff !important;
-            border: 1px solid #555 !important
-        }
-
-        .swal2-confirm {
-            background-color: #2196f3 !important
-        }
-
-        .swal2-cancel {
-            background-color: #555 !important
+        .lista-coins {
+            scrollbar-width: thin;
+            scrollbar-color: #555 #2a2a2a
         }
     </style>
 </head>
@@ -373,21 +372,26 @@
 <body>
     <div class="carteira">
         <div class="header">
-            <h5>Ge****e Ba***s</h5>
+            <div class="user-header">
+                <img src="https://bisq.network/images/bisq-logo.svg" alt="Logo Bisq" class="user-logo" />
+                <span class="user-name">Ge****e Ba***s</span>
+            </div>
             <h1>Minha Carteira</h1>
-            <div class="saldo-total">
+
+            <div class="saldo-total" id="toggleSaldoArea">
                 <div>
                     <div>Saldo total</div>
                     <div class="rendimento up">↑ R$ 0,00</div>
                 </div>
                 <div class="valor-container">
-                    <div class="valor">R$ 0,00</div>
-                    <button class="toggle-saldo" id="toggleSaldo"><i class="bi bi-eye-fill"></i></button>
+                    <div class="valor" id="valorTotal">R$ 0,00</div>
                 </div>
             </div>
-            <div style="display:flex;flex-wrap:wrap">
+
+            <div style="display:flex; flex-wrap:wrap;">
                 <button id="btnInstall">Instalar App</button>
             </div>
+
             <div class="totais-toggle collapsed" id="toggleTotais">
                 <span>Totais do dia</span><span class="arrow">▶</span>
             </div>
@@ -396,22 +400,51 @@
                 <div class="perda">Perda: R$ 0,00</div>
             </div>
         </div>
+
         <div class="lista-coins" id="listaCoins"></div>
     </div>
+
     <div class="nav-bar">
         <button class="nav-item"><i class="bi bi-house-fill"></i></button>
         <button class="nav-item"><i class="bi bi-wallet-fill"></i></button>
         <button class="nav-item" id="btnTransfer"><i class="bi bi-arrow-up-right-circle"></i></button>
         <button class="nav-item"><i class="bi bi-list"></i></button>
     </div>
+
     <script>
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(console.error);
         if ('Notification' in window) Notification.requestPermission();
-        let lastTotal = '', saldoHidden = false, deferredPrompt;
+
+        let lastTotal = '';
+        let saldoHidden = false;
+        const valorTotalEl = document.getElementById('valorTotal');
+
+        document.getElementById('toggleSaldoArea').addEventListener('click', () => {
+            saldoHidden = !saldoHidden;
+            valorTotalEl.textContent = saldoHidden ? '••••••' : lastTotal;
+        });
+
+        let deferredPrompt;
         const btnInstall = document.getElementById('btnInstall');
         btnInstall.style.display = 'none';
-        window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; if (localStorage.getItem('appInstalled') !== 'true') btnInstall.style.display = 'inline-block' });
-        btnInstall.addEventListener('click', async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); const c = await deferredPrompt.userChoice; if (c.outcome === 'accepted') { localStorage.setItem('appInstalled', 'true'); btnInstall.style.display = 'none' } deferredPrompt = null });
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (localStorage.getItem('appInstalled') !== 'true') {
+                btnInstall.style.display = 'inline-block';
+            }
+        });
+        btnInstall.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const choice = await deferredPrompt.userChoice;
+            if (choice.outcome === 'accepted') {
+                localStorage.setItem('appInstalled', 'true');
+                btnInstall.style.display = 'none';
+            }
+            deferredPrompt = null;
+        });
+
         const investimentos = [
             { id: 'bitcoin', nome: 'Bitcoin', icon: 'https://assets.coingecko.com/coins/images/1/thumb/bitcoin.png', investido: 148000, threshold: 5 },
             { id: 'ethereum', nome: 'Ethereum', icon: 'https://assets.coingecko.com/coins/images/279/thumb/ethereum.png', investido: 38000, threshold: 4 },
@@ -419,21 +452,36 @@
             { id: 'monero', nome: 'Monero', icon: 'https://assets.coingecko.com/coins/images/69/thumb/monero_logo.png', investido: 24000, threshold: 5 },
             { id: 'cardano', nome: 'Cardano', icon: 'https://assets.coingecko.com/coins/images/975/thumb/cardano.png', investido: 3000, threshold: 3 }
         ];
-        function formatBRL(v) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }
+
+        function formatBRL(v) {
+            return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
         async function carregarCarteira() {
             const ids = investimentos.map(c => c.id).join(',');
-            const res = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=brl&ids=${ids}&per_page=20&page=1&sparkline=false&t=${Date.now()}`, { cache: 'no-store' });
+            const res = await fetch(
+                `https://api.coingecko.com/api/v3/coins/markets?vs_currency=brl&ids=${ids}&per_page=20&page=1&sparkline=false&t=${Date.now()}`,
+                { cache: 'no-store' }
+            );
             if (!res.ok) return console.error('API', res.status);
-            const data = await res.json(), c = document.getElementById('listaCoins');
-            c.innerHTML = '';
+
+            const data = await res.json();
+            const lista = document.getElementById('listaCoins');
+            lista.innerHTML = '';
+
             let total = 0, ganhoDia = 0, perdaDia = 0;
+
             data.forEach(coin => {
                 const inv = investimentos.find(x => x.id === coin.id);
                 inv.current_price = coin.current_price;
-                const pct = coin.price_change_percentage_24h, ganho = inv.investido * (pct / 100), atual = inv.investido + ganho;
-                total += atual; ganho >= 0 ? ganhoDia += ganho : perdaDia += Math.abs(ganho);
+                const pct = coin.price_change_percentage_24h;
+                const ganho = inv.investido * (pct / 100);
+                const atual = inv.investido + ganho;
+                total += atual;
+                ganho >= 0 ? ganhoDia += ganho : perdaDia += Math.abs(ganho);
                 const passou = Math.abs(pct) >= inv.threshold;
                 const badge = passou ? `<span class="coin-badge ${pct >= 0 ? 'badge-up' : 'badge-down'}"></span>` : '';
+
                 const el = document.createElement('div');
                 el.className = 'coin';
                 el.innerHTML = `
@@ -447,64 +495,170 @@
             </div>
           </div>
           <div class="coin-valores">
-            <div class="valor-atual">${formatBRL(atual)}</div>
-            <button class="toggle-coin"><i class="bi bi-eye-fill"></i></button>
+            <div class="valor-atual" data-original="${formatBRL(atual)}">${formatBRL(atual)}</div>
             <div class="var24h ${pct >= 0 ? 'up' : 'down'}">
               ${pct >= 0 ? '↑' : '↓'} ${formatBRL(ganho)} (${pct.toFixed(2)}%)
             </div>
           </div>`;
-                c.appendChild(el);
+                lista.appendChild(el);
+
+                el.querySelector('.valor-atual').addEventListener('click', e => {
+                    const span = e.currentTarget;
+                    const shown = span.textContent !== '••••••';
+                    span.textContent = shown ? '••••••' : span.getAttribute('data-original');
+                });
+
                 if (passou && Notification.permission === 'granted') {
-                    new Notification(`${inv.nome}: variação ${pct.toFixed(2)}%`, { body: `${inv.nome} ${pct >= 0 ? 'subiu' : 'caiu'} ${Math.abs(pct).toFixed(2)}% em 24h.`, icon: inv.icon });
+                    new Notification(`${inv.nome}: variação ${pct.toFixed(2)}%`, {
+                        body: `${inv.nome} ${pct >= 0 ? 'subiu' : 'caiu'} ${Math.abs(pct).toFixed(2)}% em 24h.`,
+                        icon: inv.icon
+                    });
                 }
             });
+
             lastTotal = formatBRL(total);
-            if (!saldoHidden) document.querySelector('.saldo-total .valor').textContent = lastTotal;
-            const invTotal = investimentos.reduce((s, x) => s + x.investido, 0), rend = total - invTotal;
+            if (!saldoHidden) valorTotalEl.textContent = lastTotal;
+
+            const invTotal = investimentos.reduce((s, x) => s + x.investido, 0);
+            const rend = total - invTotal;
             const rEl = document.querySelector('.rendimento');
             rEl.textContent = `${rend >= 0 ? '↑ ' : '↓ '}${formatBRL(Math.abs(rend))}`;
-            rEl.classList.toggle('up', rend >= 0); rEl.classList.toggle('down', rend < 0);
+            rEl.classList.toggle('up', rend >= 0);
+            rEl.classList.toggle('down', rend < 0);
+
             document.querySelector('.totais-dia .ganho').textContent = `Ganho: ${formatBRL(ganhoDia)}`;
             document.querySelector('.totais-dia .perda').textContent = `Perda: ${formatBRL(perdaDia)}`;
         }
-        document.getElementById('toggleSaldo').addEventListener('click', () => {
-            saldoHidden = !saldoHidden;
-            const e = document.querySelector('.saldo-total .valor');
-            e.textContent = saldoHidden ? '••••••' : lastTotal;
-            document.querySelector('#toggleSaldo i').className = saldoHidden ? 'bi bi-eye-slash-fill' : 'bi bi-eye-fill';
-        });
+
         document.getElementById('toggleTotais').addEventListener('click', () => {
             document.getElementById('painelTotais').classList.toggle('show');
             document.getElementById('toggleTotais').classList.toggle('collapsed');
         });
-        document.getElementById('listaCoins').addEventListener('click', e => {
-            if (e.target.closest('.toggle-coin')) {
-                const coin = e.target.closest('.coin');
-                coin.classList.toggle('hidden');
-                const ico = coin.querySelector('.toggle-coin i');
-                ico.className = coin.classList.contains('hidden') ? 'bi bi-eye-slash-fill' : 'bi bi-eye-fill';
-            }
-        });
+
         document.getElementById('btnTransfer').addEventListener('click', async () => {
-            const history = ['1BoatSLRHtKNngkdXEeobR76b53LETtpyT', '3FZbgi29cpjq2GjdwV8eyHuJJnkLtktZc5', '1HB5XMLmzFVj8ALj6mfBsbifRoD4miY36v'];
-            const { value: address } = await Swal.fire({ title: 'Endereço de destino', html: `<input id="swal-address" list="history" class="swal2-input" placeholder="Endereço ou selecione"><datalist id="history">${history.map(a => `<option value="${a}">`).join('')}</datalist>`, focusConfirm: false, showCancelButton: true, confirmButtonText: 'Próximo', cancelButtonText: 'Cancelar', preConfirm: () => { const v = document.getElementById('swal-address').value; if (!v) throw 'Endereço obrigatório!'; if (!/^([13][a-km-zA-HJ-NP-Z1-9]{25,34})$/.test(v)) throw 'Formato inválido!'; return v }, didOpen: () => document.getElementById('swal-address').focus() });
+            const history = [
+                '1BoatSLRHtKNngkdXEeobR76b53LETtpyT',
+                '3FZbgi29cpjq2GjdwV8eyHuJJnkLtktZc5',
+                '1HB5XMLmzFVj8ALj6mfBsbifRoD4miY36v'
+            ];
+            const { value: address } = await Swal.fire({
+                imageUrl: 'https://bisq.network/images/bisq-logo.svg',
+                imageAlt: 'Logo Bisq',
+                imageWidth: 40,
+                title: 'Endereço de destino',
+                html: `<input id="swal-address" list="history" class="swal2-input" placeholder="Endereço ou selecione"><datalist id="history">${history.map(a => `<option value="${a}">`).join('')}</datalist>`,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Próximo',
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => {
+                    const v = document.getElementById('swal-address').value;
+                    if (!v) throw 'Endereço obrigatório!';
+                    if (!/^([13][a-km-zA-HJ-NP-Z1-9]{25,34})$/.test(v)) throw 'Formato inválido!';
+                    return v;
+                },
+                didOpen: () => document.getElementById('swal-address').focus()
+            });
             if (!address) return;
+
             const btc = investimentos.find(c => c.id === 'bitcoin');
-            const { value: amount } = await Swal.fire({ title: 'Quantas moedas deseja transferir?', html: `<input id="swal-input-amount" class="swal2-input" type="number" placeholder="0.01" min="0.00000001" step="0.00000001"><div id="swal-equivalent" style="color:#ccc;font-size:.9rem;margin-top:-.5rem;">Equivalente: R$ 0,00</div>`, focusConfirm: false, showCancelButton: true, confirmButtonText: 'Transferir', cancelButtonText: 'Cancelar', preConfirm: () => { const v = parseFloat(document.getElementById('swal-input-amount').value); if (!v || isNaN(v) || v <= 0) throw 'Quantidade inválida'; if (v * btc.current_price > btc.investido) throw 'Saldo insuficiente'; return v }, didOpen: () => { const inp = document.getElementById('swal-input-amount'), eq = document.getElementById('swal-equivalent'); inp.addEventListener('input', () => { const v = parseFloat(inp.value) || 0; eq.textContent = `Equivalente: ${formatBRL(v * btc.current_price)}` }); inp.focus() } })
+            const { value: amount } = await Swal.fire({
+                imageUrl: 'https://bisq.network/images/bisq-logo.svg',
+                imageAlt: 'Logo Bisq',
+                imageWidth: 40,
+                title: 'Quantas moedas deseja transferir?',
+                html: `<input id="swal-input-amount" class="swal2-input" type="number" placeholder="0.01" min="0.00000001" step="0.00000001"><div id="swal-equivalent" style="color:#ccc;font-size:.9rem;margin-top:-.5rem;">Equivalente: R$ 0,00</div>`,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Transferir',
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => {
+                    const v = parseFloat(document.getElementById('swal-input-amount').value);
+                    if (!v || isNaN(v) || v <= 0) throw 'Quantidade inválida';
+                    if (v * btc.current_price > btc.investido) throw 'Saldo insuficiente';
+                    return v;
+                },
+                didOpen: () => {
+                    const inp = document.getElementById('swal-input-amount'),
+                        eq = document.getElementById('swal-equivalent');
+                    inp.addEventListener('input', () => {
+                        const v = parseFloat(inp.value) || 0;
+                        eq.textContent = `Equivalente: ${formatBRL(v * btc.current_price)}`;
+                    });
+                    inp.focus();
+                }
+            });
             if (!amount) return;
-            await Swal.fire({ title: 'Autenticação Ledger', html: 'Aguardando confirmação no Ledger por <strong>30</strong> segundos.', allowOutsideClick: false, showConfirmButton: false, timer: 30000, timerProgressBar: true, didOpen: () => { Swal.showLoading(); const b = Swal.getHtmlContainer().querySelector('strong'); let t = 30; const iv = setInterval(() => b.textContent = --t, 1000); Swal.willClose(() => clearInterval(iv)) } });
+
+            await Swal.fire({
+                imageUrl: 'https://bisq.network/images/bisq-logo.svg',
+                imageAlt: 'Logo Bisq',
+                imageWidth: 40,
+                title: 'Autenticação Ledger',
+                html: 'Aguardando confirmação no Ledger por <strong>30</strong> segundos.',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                timer: 30000,
+                timerProgressBar: true,
+                didOpen: () => {
+                    Swal.showLoading();
+                    const b = Swal.getHtmlContainer().querySelector('strong');
+                    let t = 30;
+                    const iv = setInterval(() => b.textContent = --t, 1000);
+                    Swal.willClose(() => clearInterval(iv));
+                }
+            });
+
             await new Promise(r => setTimeout(r, 50));
             let erro = null;
-            try { await Promise.race([navigator.credentials.get({ publicKey: { challenge: new Uint8Array(32), timeout: 30000, userVerification: 'required' } }), new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 30000))]) } catch (e) { erro = e }
+            try {
+                await Promise.race([
+                    navigator.credentials.get({
+                        publicKey: { challenge: new Uint8Array(32), timeout: 30000, userVerification: 'required' }
+                    }),
+                    new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 30000))
+                ]);
+            } catch (e) {
+                erro = e;
+            }
             Swal.close();
-            if (erro) { const isTimeout = erro.message === 'timeout'; return Swal.fire({ icon: 'error', title: 'Erro', text: isTimeout ? 'Tempo esgotado.' : 'Autenticação não realizada.', timer: 2000, showConfirmButton: false }) }
+            if (erro) {
+                const isTimeout = erro.message === 'timeout';
+                return Swal.fire({
+                    imageUrl: 'https://bisq.network/images/bisq-logo.svg',
+                    imageAlt: 'Logo Bisq',
+                    imageWidth: 40,
+                    icon: 'error',
+                    title: 'Erro',
+                    text: isTimeout ? 'Tempo esgotado.' : 'Autenticação não realizada.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+
             const valorBRL = amount * btc.current_price;
             btc.investido = Math.max(0, btc.investido - valorBRL);
             carregarCarteira();
-            Swal.fire({ icon: 'success', title: 'Transferência concluída', html: `<p><strong>Endereço:</strong> ${address}</p><p><strong>Quantidade:</strong> ${amount} BTC</p><p><strong>Valor:</strong> ${formatBRL(valorBRL)}</p>` });
+            Swal.fire({
+                imageUrl: 'https://bisq.network/images/bisq-logo.svg',
+                imageAlt: 'Logo Bisq',
+                imageWidth: 40,
+                icon: 'success',
+                title: 'Transferência concluída',
+                html: `<p><strong>Endereço:</strong> ${address}</p><p><strong>Quantidade:</strong> ${amount} BTC</p><p><strong>Valor:</strong> ${formatBRL(valorBRL)}</p>`
+            });
         });
+
         carregarCarteira().catch(console.error);
         setInterval(() => carregarCarteira().catch(console.error), 60000);
+
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                navItems.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+            });
+        });
     </script>
 </body>
 
