@@ -16,22 +16,6 @@
             --neon-glow: 0 0 8px var(--neon-green), 0 0 16px var(--neon-green);
         }
 
-        /* --- Overlay de Autenticação --- */
-        #authOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: #000;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            font-size: 1.25rem;
-        }
-
         /* --- SweetAlert2 customizações --- */
         .swal2-popup {
             background: #2a2a2a !important;
@@ -73,6 +57,7 @@
             font-size: 1rem !important;
         }
 
+        /* Remover glow/borda neon da imagem do logo */
         .swal2-image {
             box-shadow: none !important;
             border: none !important;
@@ -118,6 +103,7 @@
             width: 100%;
             margin: 0 auto;
             background: #1e1e1e;
+
             border-radius: 16px;
             overflow: hidden
         }
@@ -131,6 +117,7 @@
             display: flex;
             flex-direction: column;
             align-items: baseline;
+
         }
 
         .user-logo {
@@ -143,6 +130,8 @@
             color: #fff;
             font-size: 1rem;
             font-weight: 600;
+            align-items: baseline;
+
         }
 
         .header h1 {
@@ -373,11 +362,7 @@
 </head>
 
 <body>
-    <!-- Overlay de autenticação -->
-    <div id="authOverlay">Autenticando por impressão digital...</div>
-
-    <!-- Aplicação só aparece após autenticação -->
-    <div id="app" style="display: none;">
+    <div id="appContainer" style="display: none; flex-direction: column; min-height: 100vh;">
         <div class="carteira">
             <div class="header">
                 <div class="user-header">
@@ -421,113 +406,87 @@
     </div>
 
     <script>
-        // Função de autenticação via WebAuthn
-        async function authenticate() {
-            if (!('credentials' in navigator) || !('PublicKeyCredential' in window)) {
-                console.warn('WebAuthn não suportado');
-                document.getElementById('app').style.display = '';
-                document.getElementById('authOverlay').style.display = 'none';
-                return;
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(console.error);
+        if ('Notification' in window) Notification.requestPermission();
+
+        let lastTotal = '';
+        let saldoHidden = false;
+        const valorTotalEl = document.getElementById('valorTotal');
+
+        document.getElementById('toggleSaldoArea').addEventListener('click', () => {
+            saldoHidden = !saldoHidden;
+            valorTotalEl.textContent = saldoHidden ? '••••••' : lastTotal;
+        });
+
+        let deferredPrompt;
+        const btnInstall = document.getElementById('btnInstall');
+        btnInstall.style.display = 'none';
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (localStorage.getItem('appInstalled') !== 'true') {
+                btnInstall.style.display = 'inline-block';
             }
-            try {
-                await navigator.credentials.get({
-                    publicKey: {
-                        challenge: new Uint8Array(32),
-                        timeout: 60000,
-                        userVerification: 'required'
-                    }
-                });
-                document.getElementById('app').style.display = '';
-                document.getElementById('authOverlay').style.display = 'none';
-            } catch (err) {
-                console.error('Falha na autenticação:', err);
-                alert('Não foi possível autenticar. Recarregue a página para tentar novamente.');
+        });
+        btnInstall.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const choice = await deferredPrompt.userChoice;
+            if (choice.outcome === 'accepted') {
+                localStorage.setItem('appInstalled', 'true');
+                btnInstall.style.display = 'none';
             }
+            deferredPrompt = null;
+        });
+
+        const investimentos = [
+            { id: 'bitcoin', nome: 'Bitcoin', icon: 'https://assets.coingecko.com/coins/images/1/thumb/bitcoin.png', investido: 148000, threshold: 5 },
+            { id: 'ethereum', nome: 'Ethereum', icon: 'https://assets.coingecko.com/coins/images/279/thumb/ethereum.png', investido: 38000, threshold: 4 },
+            { id: 'solana', nome: 'Solana', icon: 'https://assets.coingecko.com/coins/images/4128/thumb/solana.png', investido: 20000, threshold: 6 },
+            { id: 'monero', nome: 'Monero', icon: 'https://assets.coingecko.com/coins/images/69/thumb/monero_logo.png', investido: 24000, threshold: 5 },
+            { id: 'cardano', nome: 'Cardano', icon: 'https://assets.coingecko.com/coins/images/975/thumb/cardano.png', investido: 3000, threshold: 3 },
+            { id: 'stellar', nome: 'Stellar', icon: 'https://assets.coingecko.com/coins/images/100/thumb/Stellar_symbol_black_RGB.png', investido: 3800, threshold: 4 },
+            { id: 'matic-network', nome: 'Polygon', icon: 'https://assets.coingecko.com/coins/images/4713/thumb/matic-token-icon.png', investido: 2100, threshold: 4 },
+            { id: 'vechain', nome: 'VeChain', icon: 'https://assets.coingecko.com/coins/images/1167/thumb/VeChain-Logo-768x725.png', investido: 3500, threshold: 5 },
+            { id: 'uniswap', nome: 'Uniswap', icon: 'https://assets.coingecko.com/coins/images/12504/thumb/uniswap-uni.png', investido: 3300, threshold: 5 },
+            { id: 'aave', nome: 'Aave', icon: 'https://assets.coingecko.com/coins/images/12645/thumb/AAVE.png', investido: 2900, threshold: 4 }
+        ];
+
+        function formatBRL(v) {
+            return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
 
-        window.addEventListener('load', () => {
-            authenticate();
+        async function carregarCarteira() {
+            const ids = investimentos.map(c => c.id).join(',');
+            const res = await fetch(
+                `https://api.coingecko.com/api/v3/coins/markets?vs_currency=brl&ids=${ids}&per_page=20&page=1&sparkline=false&t=${Date.now()}`,
+                { cache: 'no-store' }
+            );
+            if (!res.ok) return console.error('API', res.status);
 
-            if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(console.error);
-            if ('Notification' in window) Notification.requestPermission();
+            const data = await res.json();
+            const lista = document.getElementById('listaCoins');
+            lista.innerHTML = '';
 
-            let lastTotal = '';
-            let saldoHidden = false;
-            const valorTotalEl = document.getElementById('valorTotal');
+            let total = 0, ganhoDia = 0, perdaDia = 0;
 
-            document.getElementById('toggleSaldoArea').addEventListener('click', () => {
-                saldoHidden = !saldoHidden;
-                valorTotalEl.textContent = saldoHidden ? '••••••' : lastTotal;
-            });
+            data.forEach(coin => {
+                const inv = investimentos.find(x => x.id === coin.id);
+                inv.current_price = coin.current_price;
+                const pct = coin.price_change_percentage_24h;
+                const ganho = inv.investido * (pct / 100);
+                const atual = inv.investido + ganho;
+                total += atual;
+                ganho >= 0 ? ganhoDia += ganho : perdaDia += Math.abs(ganho);
+                const passou = Math.abs(pct) >= inv.threshold;
+                const badge = passou ? `<span class="coin-badge ${pct >= 0 ? 'badge-up' : 'badge-down'}"></span>` : '';
 
-            let deferredPrompt;
-            const btnInstall = document.getElementById('btnInstall');
-            btnInstall.style.display = 'none';
-            window.addEventListener('beforeinstallprompt', e => {
-                e.preventDefault();
-                deferredPrompt = e;
-                if (localStorage.getItem('appInstalled') !== 'true') {
-                    btnInstall.style.display = 'inline-block';
-                }
-            });
-            btnInstall.addEventListener('click', async () => {
-                if (!deferredPrompt) return;
-                deferredPrompt.prompt();
-                const choice = await deferredPrompt.userChoice;
-                if (choice.outcome === 'accepted') {
-                    localStorage.setItem('appInstalled', 'true');
-                    btnInstall.style.display = 'none';
-                }
-                deferredPrompt = null;
-            });
-
-            const investimentos = [
-                { id: 'bitcoin', nome: 'Bitcoin', icon: 'https://assets.coingecko.com/coins/images/1/thumb/bitcoin.png', investido: 148000, threshold: 5 },
-                { id: 'ethereum', nome: 'Ethereum', icon: 'https://assets.coingecko.com/coins/images/279/thumb/ethereum.png', investido: 38000, threshold: 4 },
-                { id: 'solana', nome: 'Solana', icon: 'https://assets.coingecko.com/coins/images/4128/thumb/solana.png', investido: 20000, threshold: 6 },
-                { id: 'monero', nome: 'Monero', icon: 'https://assets.coingecko.com/coins/images/69/thumb/monero_logo.png', investido: 24000, threshold: 5 },
-                { id: 'cardano', nome: 'Cardano', icon: 'https://assets.coingecko.com/coins/images/975/thumb/cardano.png', investido: 3000, threshold: 3 },
-                { id: 'stellar', nome: 'Stellar', icon: 'https://assets.coingecko.com/coins/images/100/thumb/Stellar_symbol_black_RGB.png', investido: 3800, threshold: 4 },
-                { id: 'matic-network', nome: 'Polygon', icon: 'https://assets.coingecko.com/coins/images/4713/thumb/matic-token-icon.png', investido: 2100, threshold: 4 },
-                { id: 'vechain', nome: 'VeChain', icon: 'https://assets.coingecko.com/coins/images/1167/thumb/VeChain-Logo-768x725.png', investido: 3500, threshold: 5 },
-                { id: 'uniswap', nome: 'Uniswap', icon: 'https://assets.coingecko.com/coins/images/12504/thumb/uniswap-uni.png', investido: 3300, threshold: 5 },
-                { id: 'aave', nome: 'Aave', icon: 'https://assets.coingecko.com/coins/images/12645/thumb/AAVE.png', investido: 2900, threshold: 4 }
-            ];
-
-            function formatBRL(v) {
-                return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            }
-
-            async function carregarCarteira() {
-                const ids = investimentos.map(c => c.id).join(',');
-                const res = await fetch(
-                    `https://api.coingecko.com/api/v3/coins/markets?vs_currency=brl&ids=${ids}&per_page=20&page=1&sparkline=false&t=${Date.now()}`,
-                    { cache: 'no-store' }
-                );
-                if (!res.ok) return console.error('API', res.status);
-
-                const data = await res.json();
-                const lista = document.getElementById('listaCoins');
-                lista.innerHTML = '';
-
-                let total = 0, ganhoDia = 0, perdaDia = 0;
-
-                data.forEach(coin => {
-                    const inv = investimentos.find(x => x.id === coin.id);
-                    inv.current_price = coin.current_price;
-                    const pct = coin.price_change_percentage_24h;
-                    const ganho = inv.investido * (pct / 100);
-                    const atual = inv.investido + ganho;
-                    total += atual;
-                    ganho >= 0 ? ganhoDia += ganho : perdaDia += Math.abs(ganho);
-                    const passou = Math.abs(pct) >= inv.threshold;
-
-                    const el = document.createElement('div');
-                    el.className = 'coin';
-                    el.innerHTML = `
+                const el = document.createElement('div');
+                el.className = 'coin';
+                el.innerHTML = `
           <div class="coin-info">
             <div class="coin-img-wrapper">
-              <img src="${inv.icon}" alt="${inv.nome}">
+              <img src="${inv.icon}" alt="${inv.nome}">${badge}
             </div>
             <div>
               <div class="coin-nome">${inv.nome}</div>
@@ -540,164 +499,185 @@
               ${pct >= 0 ? '↑' : '↓'} ${formatBRL(ganho)} (${pct.toFixed(2)}%)
             </div>
           </div>`;
-                    lista.appendChild(el);
+                lista.appendChild(el);
 
-                    el.querySelector('.valor-atual').addEventListener('click', e => {
-                        const span = e.currentTarget;
-                        const shown = span.textContent !== '••••••';
-                        span.textContent = shown ? '••••••' : span.getAttribute('data-original');
-                    });
-
-                    if (passou && Notification.permission === 'granted') {
-                        new Notification(`${inv.nome}: variação ${pct.toFixed(2)}%`, {
-                            body: `${inv.nome} ${pct >= 0 ? 'subiu' : 'caiu'} ${Math.abs(pct).toFixed(2)}% em 24h.`,
-                            icon: inv.icon
-                        });
-                    }
+                el.querySelector('.valor-atual').addEventListener('click', e => {
+                    const span = e.currentTarget;
+                    const shown = span.textContent !== '••••••';
+                    span.textContent = shown ? '••••••' : span.getAttribute('data-original');
                 });
 
-                lastTotal = formatBRL(total);
-                if (!saldoHidden) valorTotalEl.textContent = lastTotal;
+                if (passou && Notification.permission === 'granted') {
+                    new Notification(`${inv.nome}: variação ${pct.toFixed(2)}%`, {
+                        body: `${inv.nome} ${pct >= 0 ? 'subiu' : 'caiu'} ${Math.abs(pct).toFixed(2)}% em 24h.`,
+                        icon: inv.icon
+                    });
+                }
+            });
 
-                const invTotal = investimentos.reduce((s, x) => s + x.investido, 0);
-                const rend = total - invTotal;
-                const rEl = document.querySelector('.rendimento');
-                rEl.textContent = `${rend >= 0 ? '↑ ' : '↓ '}${formatBRL(Math.abs(rend))}`;
-                rEl.classList.toggle('up', rend >= 0);
-                rEl.classList.toggle('down', rend < 0);
+            lastTotal = formatBRL(total);
+            if (!saldoHidden) valorTotalEl.textContent = lastTotal;
 
-                document.querySelector('.totais-dia .ganho').textContent = `Ganho: ${formatBRL(ganhoDia)}`;
-                document.querySelector('.totais-dia .perda').textContent = `Perda: ${formatBRL(perdaDia)}`;
+            const invTotal = investimentos.reduce((s, x) => s + x.investido, 0);
+            const rend = total - invTotal;
+            const rEl = document.querySelector('.rendimento');
+            rEl.textContent = `${rend >= 0 ? '↑ ' : '↓ '}${formatBRL(Math.abs(rend))}`;
+            rEl.classList.toggle('up', rend >= 0);
+            rEl.classList.toggle('down', rend < 0);
+
+            document.querySelector('.totais-dia .ganho').textContent = `Ganho: ${formatBRL(ganhoDia)}`;
+            document.querySelector('.totais-dia .perda').textContent = `Perda: ${formatBRL(perdaDia)}`;
+        }
+
+        document.getElementById('toggleTotais').addEventListener('click', () => {
+            document.getElementById('painelTotais').classList.toggle('show');
+            document.getElementById('toggleTotais').classList.toggle('collapsed');
+        });
+
+        document.getElementById('btnTransfer').addEventListener('click', async () => {
+            const history = [
+                '1BoatSLRHtKNngkdXEeobR76b53LETtpyT',
+                '3FZbgi29cpjq2GjdwV8eyHuJJnkLtktZc5',
+                '1HB5XMLmzFVj8ALj6mfBsbifRoD4miY36v'
+            ];
+            const { value: address } = await Swal.fire({
+                imageUrl: 'https://bisq.network/images/bisq-logo.svg',
+                imageAlt: 'Logo Bisq',
+                imageWidth: 40,
+                title: 'Endereço de destino',
+                html: `<input id="swal-address" list="history" class="swal2-input" placeholder="Endereço ou selecione"><datalist id="history">${history.map(a => `<option value="${a}">`).join('')}</datalist>`,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Próximo',
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => {
+                    const v = document.getElementById('swal-address').value;
+                    if (!v) throw 'Endereço obrigatório!';
+                    if (!/^([13][a-km-zA-HJ-NP-Z1-9]{25,34})$/.test(v)) throw 'Formato inválido!';
+                    return v;
+                },
+                didOpen: () => document.getElementById('swal-address').focus()
+            });
+            if (!address) return;
+
+            const btc = investimentos.find(c => c.id === 'bitcoin');
+            const { value: amount } = await Swal.fire({
+                imageUrl: 'https://bisq.network/images/bisq-logo.svg',
+                imageAlt: 'Logo Bisq',
+                imageWidth: 40,
+                title: 'Quantas moedas deseja transferir?',
+                html: `<input id="swal-input-amount" class="swal2-input" type="number" placeholder="0.01" min="0.00000001" step="0.00000001"><div id="swal-equivalent" style="color:#ccc;font-size:.9rem;margin-top:-.5rem;">Equivalente: R$ 0,00</div>`,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Transferir',
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => {
+                    const v = parseFloat(document.getElementById('swal-input-amount').value);
+                    if (!v || isNaN(v) || v <= 0) throw 'Quantidade inválida';
+                    if (v * btc.current_price > btc.investido) throw 'Saldo insuficiente';
+                    return v;
+                },
+                didOpen: () => {
+                    const inp = document.getElementById('swal-input-amount'),
+                        eq = document.getElementById('swal-equivalent');
+                    inp.addEventListener('input', () => {
+                        const v = parseFloat(inp.value) || 0;
+                        eq.textContent = `Equivalente: ${formatBRL(v * btc.current_price)}`;
+                    });
+                    inp.focus();
+                }
+            });
+            if (!amount) return;
+
+            await Swal.fire({
+                imageUrl: 'https://bisq.network/images/bisq-logo.svg',
+                imageAlt: 'Logo Bisq',
+                imageWidth: 40,
+                title: 'Autenticação Ledger',
+                html: 'Aguardando confirmação no Ledger por <strong>30</strong> segundos.',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                timer: 30000,
+                timerProgressBar: true,
+                didOpen: () => {
+                    Swal.showLoading();
+                    const b = Swal.getHtmlContainer().querySelector('strong');
+                    let t = 30;
+                    const iv = setInterval(() => b.textContent = --t, 1000);
+                    Swal.willClose(() => clearInterval(iv));
+                }
+            });
+
+            await new Promise(r => setTimeout(r, 50));
+            let erro = null;
+            try {
+                await Promise.race([
+                    navigator.credentials.get({
+                        publicKey: { challenge: new Uint8Array(32), timeout: 30000, userVerification: 'required' }
+                    }),
+                    new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 30000))
+                ]);
+            } catch (e) {
+                erro = e;
+            }
+            Swal.close();
+            if (erro) {
+                const isTimeout = erro.message === 'timeout';
+                return Swal.fire({
+                    imageUrl: 'https://bisq.network/images/bisq-logo.svg',
+                    imageAlt: 'Logo Bisq',
+                    imageWidth: 40,
+                    icon: 'error',
+                    title: 'Erro',
+                    text: isTimeout ? 'Tempo esgotado.' : 'Autenticação não realizada.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
             }
 
-            document.getElementById('toggleTotais').addEventListener('click', () => {
-                document.getElementById('painelTotais').classList.toggle('show');
-                document.getElementById('toggleTotais').classList.toggle('collapsed');
+            const valorBRL = amount * btc.current_price;
+            btc.investido = Math.max(0, btc.investido - valorBRL);
+            carregarCarteira();
+            Swal.fire({
+                imageUrl: 'https://bisq.network/images/bisq-logo.svg',
+                imageAlt: 'Logo Bisq',
+                imageWidth: 40,
+                icon: 'success',
+                title: 'Transferência concluída',
+                html: `<p><strong>Endereço:</strong> ${address}</p><p><strong>Quantidade:</strong> ${amount} BTC</p><p><strong>Valor:</strong> ${formatBRL(valorBRL)}</p>`
             });
+        });
 
-            document.getElementById('btnTransfer').addEventListener('click', async () => {
-                const history = [
-                    '1BoatSLRHtKNngkdXEeobR76b53LETtpyT',
-                    '3FZbgi29cpjq2GjdwV8eyHuJJnkLtktZc5',
-                    '1HB5XMLmzFVj8ALj6mfBsbifRoD4miY36v'
-                ];
-                const { value: address } = await Swal.fire({
-                    imageUrl: 'https://bisq.network/images/bisq-logo.svg',
-                    imageAlt: 'Logo Bisq',
-                    imageWidth: 40,
-                    title: 'Endereço de destino',
-                    html: `<input id="swal-address" list="history" class="swal2-input" placeholder="Endereço ou selecione"><datalist id="history">${history.map(a => `<option value="${a}">`).join('')}</datalist>`,
-                    focusConfirm: false,
-                    showCancelButton: true,
-                    confirmButtonText: 'Próximo',
-                    cancelButtonText: 'Cancelar',
-                    preConfirm: () => {
-                        const v = document.getElementById('swal-address').value;
-                        if (!v) throw 'Endereço obrigatório!';
-                        if (!/^([13][a-km-zA-HJ-NP-Z1-9]{25,34})$/.test(v)) throw 'Formato inválido!';
-                        return v;
-                    },
-                    didOpen: () => document.getElementById('swal-address').focus()
-                });
-                if (!address) return;
-
-                const btc = investimentos.find(c => c.id === 'bitcoin');
-                const { value: amount } = await Swal.fire({
-                    imageUrl: 'https://bisq.network/images/bisq-logo.svg',
-                    imageAlt: 'Logo Bisq',
-                    imageWidth: 40,
-                    title: 'Quantas moedas deseja transferir?',
-                    html: `<input id="swal-input-amount" class="swal2-input" type="number" placeholder="0.01" min="0.00000001" step="0.00000001"><div id="swal-equivalent" style="color:#ccc;font-size:.9rem;margin-top:-.5rem;">Equivalente: R$ 0,00</div>`,
-                    focusConfirm: false,
-                    showCancelButton: true,
-                    confirmButtonText: 'Transferir',
-                    cancelButtonText: 'Cancelar',
-                    preConfirm: () => {
-                        const v = parseFloat(document.getElementById('swal-input-amount').value);
-                        if (!v || isNaN(v) || v <= 0) throw 'Quantidade inválida';
-                        if (v * btc.current_price > btc.investido) throw 'Saldo insuficiente';
-                        return v;
-                    },
-                    didOpen: () => {
-                        const inp = document.getElementById('swal-input-amount'),
-                            eq = document.getElementById('swal-equivalent');
-                        inp.addEventListener('input', () => {
-                            const v = parseFloat(inp.value) || 0;
-                            eq.textContent = `Equivalente: ${formatBRL(v * btc.current_price)}`;
-                        });
-                        inp.focus();
-                    }
-                });
-                if (!amount) return;
-
-                await Swal.fire({
-                    imageUrl: 'https://bisq.network/images/bisq-logo.svg',
-                    imageAlt: 'Logo Bisq',
-                    imageWidth: 40,
-                    title: 'Autenticação Ledger',
-                    html: 'Aguardando confirmação no Ledger por <strong>30</strong> segundos.',
-                    allowOutsideClick: false,
-                    showConfirmButton: false,
-                    timer: 30000,
-                    timerProgressBar: true,
-                    didOpen: () => {
-                        Swal.showLoading();
-                        const b = Swal.getHtmlContainer().querySelector('strong');
-                        let t = 30;
-                        const iv = setInterval(() => b.textContent = --t, 1000);
-                        Swal.willClose(() => clearInterval(iv));
-                    }
-                });
-
-                await new Promise(r => setTimeout(r, 50));
-                let erro = null;
-                try {
-                    await Promise.race([
-                        navigator.credentials.get({
-                            publicKey: { challenge: new Uint8Array(32), timeout: 30000, userVerification: 'required' }
-                        }),
-                        new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 30000))
-                    ]);
-                } catch (e) {
-                    erro = e;
-                }
-                Swal.close();
-                if (erro) {
-                    const isTimeout = erro.message === 'timeout';
-                    return Swal.fire({
-                        imageUrl: 'https://bisq.network/images/bisq-logo.svg',
-                        imageAlt: 'Logo Bisq',
-                        imageWidth: 40,
-                        icon: 'error',
-                        title: 'Erro',
-                        text: isTimeout ? 'Tempo esgotado.' : 'Autenticação não realizada.',
-                        timer: 2000,
-                        showConfirmButton: false
+        window.addEventListener('load', () => {
+            Swal.fire({
+                title: 'Validando dispositivo',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading(),
+                timer: 3000,
+                timerProgressBar: true
+            }).then(result => {
+                if (result.dismiss === Swal.DismissReason.timer) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Dispositivo autenticado',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        Swal.close();
+                        document.getElementById('appContainer').style.display = 'flex';
+                        carregarCarteira();
+                        setInterval(() => carregarCarteira().catch(console.error), 60000);
                     });
                 }
-
-                const valorBRL = amount * btc.current_price;
-                btc.investido = Math.max(0, btc.investido - valorBRL);
-                carregarCarteira();
-                Swal.fire({
-                    imageUrl: 'https://bisq.network/images/bisq-logo.svg',
-                    imageAlt: 'Logo Bisq',
-                    imageWidth: 40,
-                    icon: 'success',
-                    title: 'Transferência concluída',
-                    html: `<p><strong>Endereço:</strong> ${address}</p><p><strong>Quantidade:</strong> ${amount} BTC</p><p><strong>Valor:</strong> ${formatBRL(valorBRL)}</p>`
-                });
             });
+        });
 
-            carregarCarteira().catch(console.error);
-            setInterval(() => carregarCarteira().catch(console.error), 60000);
 
-            const navItems = document.querySelectorAll('.nav-item');
-            navItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    navItems.forEach(i => i.classList.remove('active'));
-                    item.classList.add('active');
-                });
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                navItems.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
             });
         });
     </script>
